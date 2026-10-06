@@ -1,6 +1,7 @@
 import random
 import math
 from datetime import datetime
+from pathlib import Path
 import matplotlib.pyplot as plt
 
 n = 11
@@ -17,7 +18,9 @@ for _ in range(simulations):
     generated_values.append(successes)
 
 current_time = datetime.now().strftime("%H-%M-%S")
-filename = f"lab1_{current_time}.txt"
+output = Path(__file__).resolve().parent / 'output'
+output.mkdir(exist_ok=True)
+filename = output / f"lab1_{current_time}.txt"
 
 with open(filename, "w") as file:
     file.write(" ".join(map(str, generated_values)))
@@ -65,7 +68,7 @@ ax.spines['bottom'].set_position(('data', 0))
 unique_freqs = sorted(list(set(frequencies[:max_visible_val])))
 plt.yticks(unique_freqs, [f'{f:.2f}' for f in unique_freqs])
 
-plt.savefig(f"histogram_notebook_{current_time}.png", dpi=300)
+plt.savefig(output / f"histogram_notebook_{current_time}.png", dpi=300)
 print(f"\nГрафик по конспекту успешно сохранен как 'histogram_notebook_{current_time}.png'!")
 
 plt.show()

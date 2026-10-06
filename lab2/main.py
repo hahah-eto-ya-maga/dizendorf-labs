@@ -3,6 +3,7 @@ import random
 import math
 import matplotlib.pyplot as plt
 import datetime
+from pathlib import Path
 
 def main():
     parser = argparse.ArgumentParser()
@@ -20,8 +21,10 @@ def main():
         samples.append(x)
 
     current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    txt_filename = f"lab2_{current_time}.txt"
-    png_filename = f"lab2_{current_time}.png"
+    output = Path(__file__).resolve().parent / 'output'
+    output.mkdir(exist_ok=True)
+    txt_filename = output / f"lab2_{current_time}.txt"
+    png_filename = output / f"lab2_{current_time}.png"
 
     with open(txt_filename, "w") as f:
         for val in samples:

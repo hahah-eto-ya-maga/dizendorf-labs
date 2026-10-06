@@ -1,3 +1,4 @@
 ﻿lab*/*.txt
 lab*/*.png
+lab*/output/
 **/__pycache__/

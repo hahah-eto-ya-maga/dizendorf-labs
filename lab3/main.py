@@ -56,9 +56,6 @@ def main():
     fig.tight_layout()
     fig.savefig(output / 'histogram.png', dpi=180)
 
-    mean = sum(samples) / args.number
-    variance = sum((x - mean) ** 2 for x in samples) / args.number
-    
     if args.show:
         plt.show()
     plt.close(fig)

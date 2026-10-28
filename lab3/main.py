@@ -2,6 +2,7 @@
 import argparse
 import math
 import random
+from datetime import datetime
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -20,9 +21,10 @@ def main():
     rng = random.Random(args.seed)
     samples = [m + sigma * (sum(rng.random() for _ in range(12)) - 6)
                for _ in range(args.number)]
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     output = Path(__file__).resolve().parent / 'output'
     output.mkdir(exist_ok=True)
-    (output / 'samples.txt').write_text(
+    (output / f"lab3_{current_time}.txt").write_text(
         '\n'.join(repr(x) for x in samples) + '\n', encoding='utf-8')
 
     intervals = max(1, int(math.log2(args.number)))
@@ -54,7 +56,7 @@ def main():
     ax.grid(axis='y', linestyle='--', alpha=0.4)
     ax.legend()
     fig.tight_layout()
-    fig.savefig(output / 'histogram.png', dpi=180)
+    fig.savefig(output / f"lab3_{current_time}.png", dpi=180)
 
     if args.show:
         plt.show()

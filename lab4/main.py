@@ -1,6 +1,7 @@
 """Лабораторная №4, часть 1: точечные оценки для выборок варианта 2."""
 
 import math
+from html_report import write_html
 from datetime import datetime
 from pathlib import Path
 
@@ -64,6 +65,7 @@ def main():
         'S^2 = sum((x_i - x_mean)^2) / (N - 1)',
         'sigma_v = sqrt(D_v), S = sqrt(S^2)',
     ]
+    datasets = []
     for number, description, true_mean, true_variance in distributions:
         path = latest_sample(ROOT / f'lab{number}' / 'output', number)
         values = read_sample(path)
@@ -74,6 +76,11 @@ def main():
                  'Исправленная дисперсия (S^2)', 'Выборочное СКО (sigma_v)',
                  'Исправленное СКО (S)')
         modified = datetime.fromtimestamp(path.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+        datasets.append({
+            'number': number, 'description': description,
+            'file': str(path.relative_to(ROOT)), 'modified': modified,
+            'values': values, 'estimates': estimates, 'theoretical': theoretical,
+        })
         lines.extend([
             '', f'Лабораторная №{number}. {description}',
             f'Файл: {path.relative_to(ROOT)}', f'Изменён: {modified}',
@@ -91,6 +98,9 @@ def main():
     filename.write_text(report, encoding='utf-8')
     print(report)
     print(f'Отчёт сохранён: {filename}')
+    html_filename = filename.with_suffix('.html')
+    write_html(html_filename, 2, datasets, current_time.replace('_', ' '))
+    print(f'HTML-отчёт сохранён: {html_filename}')
 
 
 if __name__ == '__main__':

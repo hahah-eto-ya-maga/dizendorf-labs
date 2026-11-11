@@ -1,7 +1,8 @@
-"""Лабораторная №4, часть 1: точечные оценки для выборок варианта 2."""
+"""Лабораторная №4: точечные и интервальные оценки варианта 2."""
 
 import math
 from html_report import write_html
+from intervals import confidence_intervals, interval_text
 from datetime import datetime
 from pathlib import Path
 
@@ -56,7 +57,7 @@ def main():
         (3, 'Нормальное: m = -0.5, sigma = 1', m, sigma ** 2),
     ]
     lines = [
-        'Лабораторная работа №4. Часть 1. Вариант 2.',
+        'Лабораторная работа №4. Вариант 2. Часть 1.',
         'Точечные оценки и сравнение с теоретическими характеристиками.',
         'Выбор файлов: по последнему времени изменения.',
         '',
@@ -90,16 +91,18 @@ def main():
         for name, estimate, truth in zip(names, estimates, theoretical):
             lines.append(f'{name:<30} {estimate:12.6f} {truth:12.6f} {abs(estimate - truth):12.6f}')
 
+    intervals = confidence_intervals(datasets[2]['values'], sigma, m)
+    lines.extend(interval_text(intervals))
     report = '\n'.join(lines) + '\n'
     output = Path(__file__).resolve().parent / 'output'
     output.mkdir(exist_ok=True)
     current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    filename = output / f'lab4_part1_{current_time}.txt'
+    filename = output / f'lab4_{current_time}.txt'
     filename.write_text(report, encoding='utf-8')
     print(report)
     print(f'Отчёт сохранён: {filename}')
     html_filename = filename.with_suffix('.html')
-    write_html(html_filename, 2, datasets, current_time.replace('_', ' '))
+    write_html(html_filename, 2, datasets, current_time.replace('_', ' '), intervals)
     print(f'HTML-отчёт сохранён: {html_filename}')
 
 

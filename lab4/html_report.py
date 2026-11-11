@@ -3,6 +3,7 @@
 import html
 import json
 import math
+from interval_report import render_intervals
 
 
 LABELS = ('Среднее · x̄', 'Выборочная дисперсия · Dᵥ',
@@ -30,7 +31,7 @@ def histogram(values, discrete=False):
             + f'<text x="590" y="135" text-anchor="end">{high:.4g}</text></svg>')
 
 
-def write_html(path, variant, datasets, created):
+def write_html(path, variant, datasets, created, intervals):
     sections = []
     for data in datasets:
         number = data['number']
@@ -65,6 +66,7 @@ def write_html(path, variant, datasets, created):
     document = TEMPLATE.replace('%%VARIANT%%', str(variant)).replace('%%DATE%%', html.escape(created))
     document = document.replace('%%TOTAL%%', str(sum(len(d['values']) for d in datasets)))
     document = document.replace('%%SECTIONS%%', '\n'.join(sections)).replace('%%DATA%%', payload)
+    document = document.replace('%%INTERVALS%%', render_intervals(intervals, datasets[2]['file']))
     path.write_text(document, encoding='utf-8')
 
 
@@ -73,6 +75,7 @@ TEMPLATE = r'''<!doctype html>
 <title>Лабораторная 4 · Вариант %%VARIANT%%</title>
 <style>
 :root{color-scheme:light;--ink:#18332e;--muted:#63756f;--line:#dce5df;--accent:#166c56;--paper:#f3f5ef}
+[hidden]{display:none!important}.part-switch{display:flex;gap:10px;margin:22px 0}.part-switch button[aria-pressed="true"]{background:var(--accent);color:white;border-color:var(--accent)}.equation{font-family:Cambria,Georgia,serif;font-size:18px;overflow-wrap:anywhere}.calculations p{max-width:100%}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 system-ui,-apple-system,sans-serif}
 main{max-width:1040px;margin:auto;padding:40px 22px 70px}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font-size:11px;font-weight:750;color:var(--accent)}
 header{padding:24px 0 30px}h1{font-size:clamp(34px,6vw,58px);line-height:1.08;letter-spacing:-.045em;margin:18px 0}header p{max-width:640px;color:var(--muted)}
@@ -86,26 +89,36 @@ nav a:hover,button:hover{background:#e5f1e9}button:disabled{opacity:.4;cursor:de
 summary{cursor:pointer;font-weight:650;padding:15px 0}.samples{margin-top:22px;border-top:1px solid var(--line)}.controls{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:8px 0 15px}.controls label{font-size:12px;color:var(--muted)}select{display:block;background:white;border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit;color:var(--ink);margin-top:4px}.pager{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:18px}.page-label{font-size:12px;text-align:center;color:var(--muted)}
 .explainer{background:#e9eee4;border-radius:16px;padding:22px;margin-top:24px}.explainer h2{font-size:19px}.formulas{display:grid;grid-template-columns:1fr 1fr;gap:16px}.formulas p{margin:0;font-size:14px}.formulas b{display:block;margin-bottom:4px}footer{font-size:12px;color:var(--muted);margin-top:26px}
 @media(max-width:600px){main{padding:20px 12px 40px}.card{padding:18px 14px}.section-head{display:block}.section-head .badge{display:inline-block;margin-top:8px}.stats{gap:5px}.stats>div{padding:10px 6px}.stats small{font-size:11px}.formulas{grid-template-columns:1fr}th,td{padding:10px 8px}.pager button{padding:9px 10px}}
-@media print{body{background:white}main{max-width:none;padding:0}nav,.controls,.pager,.samples{display:none}.card{break-inside:avoid;border-radius:0;padding:14px;margin:10px 0}.table-wrap{overflow:visible}header{padding:0}h1{font-size:32px}.chart svg{max-height:120px}*{print-color-adjust:exact}}
+@media print{#part1[hidden],#part2[hidden]{display:block!important}.part-switch,#print{display:none}#part2{break-before:page}body{background:white}main{max-width:none;padding:0}nav,.controls,.pager,.samples{display:none}.card{break-inside:avoid;border-radius:0;padding:14px;margin:10px 0}.table-wrap{overflow:visible}header{padding:0}h1{font-size:32px}.chart svg{max-height:120px}*{print-color-adjust:exact}}
 </style></head><body><main>
 <header><span class="eyebrow">Теория вероятностей и математическая статистика</span>
-<h1>От выборки<br>к оценке.</h1><p>Лабораторная работа №4 · Часть 1. Точечные оценки среднего, дисперсии и стандартного отклонения.</p>
+<h1>От выборки<br>к оценке.</h1><p>Лабораторная работа №4. Точечные оценки и доверительные интервалы.</p>
 <div class="meta"><span class="badge">Вариант %%VARIANT%%</span><span>3 выборки · %%TOTAL%% наблюдений</span><span>%%DATE%%</span></div>
-<nav aria-label="Разделы отчёта"><a href="#lab1">01 · Биномиальное</a><a href="#lab2">02 · Равномерное</a><a href="#lab3">03 · Нормальное</a><button id="print" type="button">Печать / PDF</button></nav></header>
+<div class="part-switch" role="group" aria-label="Части лабораторной"><button type="button" id="part1-button" aria-controls="part1" aria-pressed="true">Часть 1 · Точечные оценки</button><button type="button" id="part2-button" aria-controls="part2" aria-pressed="false">Часть 2 · Доверительные интервалы</button></div>
+<button id="print" type="button">Печать обеих частей / PDF</button></header>
 <noscript><p>Для листания выборок включите JavaScript. Таблицы оценок и гистограммы доступны без него.</p></noscript>
+<section id="part1" aria-labelledby="part1-button">
+<nav aria-label="Выборки"><a href="#lab1">01 · Биномиальное</a><a href="#lab2">02 · Равномерное</a><a href="#lab3">03 · Нормальное</a></nav>
 %%SECTIONS%%
 <aside class="explainer"><h2>Что означают числа</h2><div class="formulas">
 <p><b>Среднее: x̄ = Σxᵢ / N</b>Оценка центра распределения по наблюдениям.</p>
 <p><b>Дисперсия: Dᵥ = Σ(xᵢ − x̄)² / N</b>Средний квадрат отклонения от выборочного среднего.</p>
 <p><b>Исправленная дисперсия: S² = N·Dᵥ / (N − 1)</b>Поправка устраняет систематическое занижение оценки дисперсии.</p>
 <p><b>СКО: σᵥ = √Dᵥ; S = √S²</b>Меры разброса в тех же единицах, что и исходные наблюдения.</p>
-</div></aside><footer>Использованы последние TXT-выборки по времени изменения файлов. Теоретические характеристики соответствуют варианту %%VARIANT%%. Отчёт содержит только первую часть лабораторной работы.</footer>
+</div></aside></section>
+<section id="part2" aria-labelledby="part2-button">%%INTERVALS%%</section>
+<footer>Использованы последние TXT-выборки по времени изменения файлов. Теоретические характеристики соответствуют варианту %%VARIANT%%. Во второй части обработана только нормальная выборка из лабораторной №3.</footer>
 </main><script id="sample-data" type="application/json">%%DATA%%</script>
 <script>
 'use strict';
 const datasets=JSON.parse(document.getElementById('sample-data').textContent);
 document.getElementById('print').addEventListener('click',()=>window.print());
-document.querySelectorAll('.card').forEach(card=>{
+function selectPart(number){
+ [1,2].forEach(i=>{document.getElementById(`part${i}`).hidden=i!==number;document.getElementById(`part${i}-button`).setAttribute('aria-pressed',String(i===number));});
+}
+[1,2].forEach(i=>document.getElementById(`part${i}-button`).addEventListener('click',()=>selectPart(i)));
+selectPart(1);
+document.querySelectorAll('.card[data-index]').forEach(card=>{
  const data=datasets[Number(card.dataset.index)];
  const original=data.values.map((value,index)=>({value,index:index+1}));
  let ordered=original.slice(),page=0;
